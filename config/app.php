@@ -17,6 +17,8 @@ return [
     */
 
     'name' => env('APP_NAME', 'Laravel'),
+    'api_key' => env('API_KEY'),
+    'secret_key' => env('SECRET_KEY'),
 
     /*
     |--------------------------------------------------------------------------
@@ -169,6 +171,7 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\TelescopeServiceProvider::class,
+        App\Providers\ExceptionServiceProvider::class,
     ])->toArray(),
 
     /*

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreProductRequest;
 use App\Http\Requests\UpdateProductRequest;
 use App\Models\Product;
+use Illuminate\Http\Request;
 
 class ProductController extends Controller
 {
@@ -31,6 +32,14 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
+        // $request->validate([
+        //     'code' => 'required|string|max:50', // Add the validation rule for the code field
+        //     'name' => 'required|string|max:250',
+        //     'quantity' => 'required|integer|min:1|max:10000',
+        //     'price' => 'required',
+        //     'description' => 'nullable|string'
+        // ]);
+        
         Product::create($request->all());
         return redirect()->route('products.index')
                 ->withSuccess('New product is added successfully.');
@@ -39,7 +48,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show(Product $product)
+    public function sho(Product $product)
     {
         return view('products.show', [
             'product' => $product
