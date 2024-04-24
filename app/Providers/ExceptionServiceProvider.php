@@ -4,62 +4,68 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Request;
-use Exception;
-use Throwable;
-use Illuminate\Validation\ValidationException;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ExceptionServiceProvider extends ServiceProvider
 {
     /**
      * Bootstrap services.
      */
-    public function boot(): void
+    public function boot(Request $request): void
     {
         $this->app->bind('Illuminate\Contracts\Debug\ExceptionHandler', function ($app) {
             return new class($app) extends \Illuminate\Foundation\Exceptions\Handler {
                 public function render($request, Throwable $exception)
                 {
-                    if ($exception instanceof ValidationException) {
-                        return parent::render($request, $exception); //if controller or Request have validation for input values then not show the exception & error.
+                    if ($this->shouldHandleValidationException($exception)) {
+                        return parent::render($request, $exception);
                     }
 
-                    if ($exception instanceof \Exception || $exception instanceof \DivisionByZeroError) {
-                        $errorMessage = $exception->getMessage();
-                        $errorTrace = $exception->getTraceAsString();
-                    
-                        $errorType = get_class($exception);
-                        $line = $exception->getLine();
-                        
-                        // $response = Http::get(config('app.url'));
-                        // $headers = [
-                        // 'api_key' => config('app.api_key'),
-                        // 'secret_key' => config('app.secret_key'),
-                        // 'Content-Type' => 'application/json'
-                        // ];
-                        $body = [
-                            'request_url' => $request->url(),
-                            'request_method' => $request->method(),
-                            'payload' => json_encode($request->all()),
-                            'error_type' => (string)$errorType,
-                            'error_message' => $errorMessage,
-                            'tag' => "tag",
-                            'meta' => [
-                                'error_line' =>$line,
-                                'stacktrace' => $errorTrace,
-                                    ]
-                            ];
-                        // $response = Http::withHeaders($headers)
-                        //             ->post('https://api.bugatlas.com/v1/api/errors', $body);
+                    if ($this->shouldHandleOtherException($exception)) {
+                        $this->sendErrorToBugAtlas($request, $exception);
+                    }
 
-                        $apiKey = config('app.api_key');
-                        $secretKey = config('app.secret_key');
-                        $postField = json_encode($body);
-                        // dd($postField);
-                        $curl = curl_init();
+                    return parent::render($request, $exception);
+                }
 
-                        curl_setopt_array($curl, array(
+                protected function shouldHandleValidationException(Throwable $exception): bool
+                {
+                    return $exception instanceof ValidationException;
+                }
+
+                protected function shouldHandleOtherException(Throwable $exception): bool
+                {
+                    return $exception instanceof \Exception || $exception instanceof \DivisionByZeroError;
+                }
+
+                protected function sendErrorToBugAtlas($request, Throwable $exception): void
+                {
+                    $errorMessage = $exception->getMessage();
+                    $errorTrace = $exception->getTraceAsString();
+                    $errorType = get_class($exception);
+                    $line = $exception->getLine();
+
+                    $body = [
+                        "request_url" => $request->fullUrl(),
+                        "request_method" => $request->method(),
+                        "payload" => json_encode($request->all()),
+                        "error_type" => $errorType,
+                        "error_message" => $errorMessage,
+                        "tag" => "",
+                        "meta" => [
+                            'error_line' => $line,
+                            'stacktrace' => $errorTrace,
+                        ]
+                    ];
+
+                    $apiKey = config('app.api_key');
+                    $secretKey = config('app.secret_key');
+                    $postField = json_encode($body);
+
+                    $curl = curl_init();
+                    curl_setopt_array($curl, [
                         CURLOPT_URL => 'https://api.bugatlas.com/v1/api/errors',
                         CURLOPT_RETURNTRANSFER => true,
                         CURLOPT_ENCODING => '',
@@ -68,36 +74,18 @@ class ExceptionServiceProvider extends ServiceProvider
                         CURLOPT_FOLLOWLOCATION => true,
                         CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
                         CURLOPT_CUSTOMREQUEST => 'POST',
-                        // CURLOPT_POSTFIELDS => $postField,
-                        CURLOPT_POSTFIELDS =>'{
-                            "request_url": "/v1/projects",
-                            "request_method": "POST",
-                            "payload": "payload",
-                            "error_type": 0,
-                            "error_message": "Project creation failed",
-                            "tag": "tag",
-                            "meta": {
-                                "meta": "data"
-                            }
-                        }',
-                        CURLOPT_HTTPHEADER => array(
+                        CURLOPT_POSTFIELDS => $postField,
+                        CURLOPT_HTTPHEADER => [
                             "api_key: $apiKey",
                             "secret_key: $secretKey",
                             "Content-Type: application/json"
-                        ),
-                        ));
+                        ],
+                    ]);
+                    $response = curl_exec($curl);
+                    curl_close($curl);
 
-                        $response = curl_exec($curl);
-
-                        curl_close($curl);
-
-                        LOG::info('result'. $response);  
-                        dd(response);                      
-                    }        
-
-                    return parent::render($request, $exception);
+                    Log::info('result' . $response);
                 }
-                
             };
         });
     }

@@ -22,9 +22,9 @@ class ProductController extends Controller
     /**
      * Show the form for creating a new resource.
      */
-    public function creat()
+    public function create()
     {
-        return view('products.create');
+        return view('products.create111');
     }
 
     /**
@@ -32,14 +32,6 @@ class ProductController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
-        // $request->validate([
-        //     'code' => 'required|string|max:50', // Add the validation rule for the code field
-        //     'name' => 'required|string|max:250',
-        //     'quantity' => 'required|integer|min:1|max:10000',
-        //     'price' => 'required',
-        //     'description' => 'nullable|string'
-        // ]);
-        
         Product::create($request->all());
         return redirect()->route('products.index')
                 ->withSuccess('New product is added successfully.');
@@ -48,7 +40,7 @@ class ProductController extends Controller
     /**
      * Display the specified resource.
      */
-    public function sho(Product $product)
+    public function show(Product $product)
     {
         return view('products.show', [
             'product' => $product
