@@ -5,7 +5,6 @@ namespace App\Providers;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Request;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ExceptionServiceProvider extends ServiceProvider
@@ -19,25 +18,73 @@ class ExceptionServiceProvider extends ServiceProvider
             return new class($app) extends \Illuminate\Foundation\Exceptions\Handler {
                 public function render($request, Throwable $exception)
                 {
-                    if ($this->shouldHandleValidationException($exception)) {
-                        return parent::render($request, $exception);
-                    }
-
-                    if ($this->shouldHandleOtherException($exception)) {
+                    if ($this->shouldHandleException($exception)) {
                         $this->sendErrorToBugAtlas($request, $exception);
                     }
 
                     return parent::render($request, $exception);
                 }
 
-                protected function shouldHandleValidationException(Throwable $exception): bool
+                protected function shouldHandleException(Throwable $exception): bool
                 {
-                    return $exception instanceof ValidationException;
-                }
+                    $exceptionName = get_class($exception);
 
-                protected function shouldHandleOtherException(Throwable $exception): bool
-                {
-                    return $exception instanceof \Exception || $exception instanceof \DivisionByZeroError;
+                    switch($exceptionName){
+                        case "SyntaxError":
+                        case "IndentationError":
+                        case "NameError":
+                        case "TypeError":
+                        case "ValueError":
+                        case "KeyError":
+                        case "IndexError":
+                        case "FileNotFoundError":
+                        case "IOError":
+                        case "AttributeError":
+                        case "ZeroDivisionError":
+                        case "ImportError":
+                        case "KeyboardInterrupt":
+                        case "AssertionError":
+                        case "ArithmeticError":
+                        case "MemoryError":
+                        case "ValidationException":
+                        case "ModelNotFoundException":
+                        case "MethodNotAllowedHttpException":
+                        case "NotFoundHttpException":
+                        case "MaintenanceModeException":            
+                        case "Illuminate\Database\QueryException":
+                        case "AuthorizationException":
+                        case "AuthenticationException":
+                        case "FileNotFoundException":
+                        case "HttpException":
+                        case "TokenMismatchException":
+                        case "ServiceNotFoundException":
+                        case "ThrottleRequestsException":
+                        case "BadMethodCallException":
+                        case "PDOException":
+                        case "ConnectException":
+                        case "PermissionDeniedException":
+                        case "DeadlockException":
+                        case "ClientException":
+                        case "ServerException":
+                        case "ReflectionException":
+                        case "Illuminate\Contracts\Container\BindingResolutionException": 
+                        case "DivisionByZeroError":
+                        case "InvalidArgumentException":
+                        case "Error":
+                        case "Illuminate\Http\Client\ConnectionException":
+                        case "Illuminate\View\ViewException":
+                        case "ErrorException":        
+                        case "Symfony\Component\HttpFoundation\Exception\SuspiciousOperationException":
+                        case "Symfony\Component\Debug\Exception\FatalThrowableError":
+                        case "GuzzleHttp\Exception\ClientException":
+                        case "GuzzleHttp\Exception\ConnectException":
+                        case "RuntimeException":
+                        case "MissingDependencyException":                        
+
+                            return true;
+                            break;
+                    }
+                    return false;
                 }
 
                 protected function sendErrorToBugAtlas($request, Throwable $exception): void
@@ -85,6 +132,7 @@ class ExceptionServiceProvider extends ServiceProvider
                     curl_close($curl);
 
                     Log::info('result' . $response);
+                    dd($response);
                 }
             };
         });
