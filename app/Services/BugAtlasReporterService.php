@@ -4,41 +4,26 @@ namespace App\Services;
 
 use Throwable;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
-use Log;
+use App\Traits\ApiBugAtlas;
 
 class BugAtlasReporterService
 {
+    use ApiBugAtlas;
+
     public function report($request, Throwable $exception): void
     {
-        $errorMessage = $exception->getMessage();
-        $errorTrace = $exception->getTraceAsString();
-        $errorType = get_class($exception);
-        $line = $exception->getLine();
-
         $body = [
             "request_url" => $request->fullUrl(),
             "request_method" => $request->method(),
             "payload" => json_encode($request->all()),
-            "error_type" => $errorType,
-            "error_message" => $errorMessage,
-            "tag" => "",
+            "error_type" => get_class($exception),
+            "error_message" => $exception->getMessage(),
+            "tag" => config('bugatlas.tag'),
             "meta" => [
-                'error_line' => $line,
-                'stacktrace' => $errorTrace,
+                'error_line' => $exception->getLine(),
+                'stacktrace' => $exception->getTraceAsString(),
             ]
         ];
-
-        $apiKey = config('app.api_key');
-        $secretKey = config('app.secret_key');
-
-        $response = Http::withHeaders([
-            "api_key" => $apiKey,
-            "secret_key" => $secretKey,
-            "Content-Type" => "application/json"
-        ])->post('https://api.bugatlas.com/v1/api/errors', $body);
-
-        Log::info('result' . $response);
-        dd($body, $response->body());
+        $this->processApiResponse("/api/errors", $body);
     }
 }

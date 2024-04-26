@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Exceptions\Handler as BaseHandler;
 use Throwable;
-use illuminate\Http\Request;
 use App\Services\BugAtlasReporterService;
+use Illuminate\Support\Facades\Log;
 
 class ExceptionHandlingService extends BaseHandler
 {
@@ -62,10 +62,11 @@ class ExceptionHandlingService extends BaseHandler
             case "FatalThrowableError":
             case "RuntimeException":
 
+                Log::info('True Exception : '.$exceptionName);
                 return true;
                 break;
         }
-        Log::info('False Exception : ',$exceptionName);
+        log::info('False Exception : '.$exceptionName);
         return false;
     }
 }
